@@ -1,14 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { rosterService, Employee, DutyAssignment } from '../services/rosterService';
+import { rosterService, Employee, DutyAssignment, Designation } from '../services/rosterService';
 import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSaturday, isSunday, isWithinInterval, parseISO } from 'date-fns';
 import { Calendar as CalendarIcon, Sparkles, CheckCircle2, ChevronLeft, ChevronRight, AlertCircle, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-const BLOCKS = [
-  { name: 'Sir Syed', count: 3 },
-  { name: 'Business School', count: 3 },
-  { name: 'NC', count: 1 },
-  { name: 'XC', count: 1 }
+const BLOCK_REQUIREMENTS = [
+  { 
+    name: 'Sir Syed', 
+    roles: [
+      { designation: 'Lab Assistant' as Designation, count: 1 },
+      { designation: 'MMO' as Designation, count: 1 },
+      { designation: 'Lab Attendant' as Designation, count: 1 }
+    ] 
+  },
+  { 
+    name: 'Business School', 
+    roles: [
+      { designation: 'Lab Assistant' as Designation, count: 1 },
+      { designation: 'MMO' as Designation, count: 1 },
+      { designation: 'Lab Attendant' as Designation, count: 1 }
+    ] 
+  },
+  { 
+    name: 'Iqbal Block', 
+    roles: [
+      { designation: 'Any', count: 1 }
+    ] 
+  },
+  { 
+    name: 'Quaid Block', 
+    roles: [
+      { designation: 'Lab Attendant' as Designation, count: 1 }
+    ] 
+  }
 ] as const;
 
 export function RosterGenerator({ onComplete }: { onComplete: () => void }) {
@@ -38,49 +62,52 @@ export function RosterGenerator({ onComplete }: { onComplete: () => void }) {
       return;
     }
 
-    // Local copy of employees to track state during generation
+    // Local copy to track state during generation
     let tempEmployees = activeEmployees.map(e => ({ ...e }));
     const newAssignments: DutyAssignment[] = [];
 
     days.forEach(day => {
-      // Check if weekend and should be excluded
-      if (excludeWeekends && (isSaturday(day) || isSunday(day))) {
-        return;
-      }
+      if (excludeWeekends && (isSaturday(day) || isSunday(day))) return;
 
       const dateStr = format(day, 'yyyy-MM-dd');
       let assignedToday: string[] = [];
 
-      BLOCKS.forEach(block => {
-        // Sort by dutyCount ASC, then by lastDutyDate ASC
-        tempEmployees.sort((a, b) => {
-          if (a.dutyCount !== b.dutyCount) return a.dutyCount - b.dutyCount;
-          if (!a.lastDutyDate) return -1;
-          if (!b.lastDutyDate) return 1;
-          return new Date(a.lastDutyDate).getTime() - new Date(b.lastDutyDate).getTime();
-        });
+      // Sort helpers
+      const getSortedAvailable = (designation?: Designation) => {
+        return tempEmployees
+          .filter(e => !assignedToday.includes(e.id) && (!designation || e.designation === designation))
+          .sort((a, b) => {
+            if (a.dutyCount !== b.dutyCount) return a.dutyCount - b.dutyCount;
+            if (!a.lastDutyDate) return -1;
+            if (!b.lastDutyDate) return 1;
+            return new Date(a.lastDutyDate).getTime() - new Date(b.lastDutyDate).getTime();
+          });
+      };
 
-        // Filter out people already assigned today
-        const available = tempEmployees.filter(e => !assignedToday.includes(e.id));
-        
-        // Pick required count
-        const selections = available.slice(0, block.count);
-        const staffIds = selections.map(s => s.id);
-        
-        newAssignments.push({
-          id: crypto.randomUUID(),
-          date: dateStr,
-          block: block.name as any,
-          staffIds,
-          createdAt: new Date().toISOString()
-        });
+      // We need to fulfill specific roles first, then generic ones
+      BLOCK_REQUIREMENTS.forEach(block => {
+        block.roles.forEach(roleReq => {
+          for (let i = 0; i < roleReq.count; i++) {
+            const available = getSortedAvailable(roleReq.designation === 'Any' ? undefined : roleReq.designation as Designation);
+            
+            if (available.length > 0) {
+              const selected = available[0];
+              
+              newAssignments.push({
+                id: crypto.randomUUID(),
+                date: dateStr,
+                block: block.name as any,
+                role: roleReq.designation,
+                staffIds: [selected.id],
+                createdAt: new Date().toISOString()
+              });
 
-        // Update temp stats
-        selections.forEach(s => {
-          const emp = tempEmployees.find(e => e.id === s.id)!;
-          emp.dutyCount += 1;
-          emp.lastDutyDate = dateStr;
-          assignedToday.push(s.id);
+              // Update in-memory state
+              selected.dutyCount += 1;
+              selected.lastDutyDate = dateStr;
+              assignedToday.push(selected.id);
+            }
+          }
         });
       });
     });
@@ -169,12 +196,12 @@ export function RosterGenerator({ onComplete }: { onComplete: () => void }) {
                 <AlertCircle className="w-4 h-4 text-orange-500" />
                 Duty Distribution Check
               </h3>
-              <ul className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                <li>• Sir Syed: 3 Staff</li>
-                <li>• Business School: 3 Staff</li>
-                <li>• NC Block: 1 Staff</li>
-                <li>• XC Block: 1 Staff</li>
-              </ul>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-600">
+                <p><strong>Sir Syed Block:</strong> 1 Asst, 1 MMO, 1 Attendant</p>
+                <p><strong>Business School:</strong> 1 Asst, 1 MMO, 1 Attendant</p>
+                <p><strong>Iqbal Block:</strong> 1 Person (Any)</p>
+                <p><strong>Quaid Block:</strong> 1 Lab Attendant</p>
+              </div>
               <p className="mt-4 text-xs text-gray-500 italic">
                 *The algorithm will prioritize staff members with the lowest cumulative duty count for fairness.
               </p>

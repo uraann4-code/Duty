@@ -7,11 +7,12 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
+        "designation": { "type": "string", "enum": ["Lab Assistant", "MMO", "Lab Attendant"] },
         "dutyCount": { "type": "number", "description": "Total number of duties performed" },
-        "lastDutyDate": { "type": "string", "format": "date-time", "description": "Date of the last assigned duty" },
+        "lastDutyDate": { "type": "string", "format": "date", "description": "Date of the last assigned duty" },
         "isActive": { "type": "boolean" }
       },
-      "required": ["id", "name", "dutyCount"]
+      "required": ["id", "name", "designation", "dutyCount", "isActive"]
     },
     "DutyAssignment": {
       "title": "Duty Assignment",
@@ -20,11 +21,12 @@
       "properties": {
         "id": { "type": "string" },
         "date": { "type": "string", "format": "date", "description": "ISO date string" },
-        "block": { "type": "string", "enum": ["Sir Syed", "Business School", "NC", "XC"] },
+        "block": { "type": "string", "enum": ["Sir Syed", "Business School", "Iqbal Block", "Quaid Block"] },
+        "role": { "type": "string" },
         "staffIds": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "date", "block", "staffIds"]
+      "required": ["id", "date", "block", "role", "staffIds", "createdAt"]
     }
   },
   "firestore": {

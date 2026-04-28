@@ -53,9 +53,12 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+export type Designation = 'Lab Assistant' | 'MMO' | 'Lab Attendant';
+
 export interface Employee {
   id: string;
   name: string;
+  designation: Designation;
   dutyCount: number;
   lastDutyDate: string | null;
   isActive: boolean;
@@ -64,7 +67,8 @@ export interface Employee {
 export interface DutyAssignment {
   id: string;
   date: string; // ISO Date YYYY-MM-DD
-  block: 'Sir Syed' | 'Business School' | 'NC' | 'XC';
+  block: 'Sir Syed' | 'Business School' | 'Iqbal' | 'Quaid';
+  role: string; // Specific role for that block
   staffIds: string[];
   createdAt: string;
 }
@@ -81,11 +85,12 @@ export const rosterService = {
     }
   },
 
-  async addEmployee(name: string): Promise<void> {
+  async addEmployee(name: string, designation: Designation): Promise<void> {
     const id = crypto.randomUUID();
     const employee: Employee = {
       id,
       name,
+      designation,
       dutyCount: 0,
       lastDutyDate: null,
       isActive: true

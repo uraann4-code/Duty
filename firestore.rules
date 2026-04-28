@@ -25,37 +25,39 @@ service cloud.firestore {
 
     // Employee Validation
     function isValidEmployee(data) {
-      return data.keys().hasAll(['id', 'name', 'dutyCount']) &&
-             data.id is string && data.id.size() <= 100 &&
+      return data.keys().hasAll(['id', 'name', 'designation', 'dutyCount', 'isActive']) &&
+             data.id is string && data.id.size() <= 128 &&
              data.name is string && data.name.size() <= 100 &&
+             data.designation in ['Lab Assistant', 'MMO', 'Lab Attendant'] &&
              data.dutyCount is number &&
-             (!data.keys().contains('lastDutyDate') || data.lastDutyDate is string);
+             data.isActive is bool &&
+             (!data.keys().contains('lastDutyDate') || data.lastDutyDate == null || data.lastDutyDate is string);
     }
 
     match /employees/{employeeId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidId(employeeId) && isValidEmployee(incoming());
-      allow update: if isSignedIn() && isValidEmployee(incoming()) && (
-        // Allow updating dutyCount and lastDutyDate for fairness logic
-        incoming().diff(existing()).affectedKeys().hasAny(['dutyCount', 'lastDutyDate', 'name', 'isActive'])
+      allow read: if true;
+      allow create: if isValidId(employeeId) && isValidEmployee(incoming());
+      allow update: if isValidEmployee(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasAny(['dutyCount', 'lastDutyDate', 'name', 'isActive', 'designation'])
       );
-      allow delete: if isSignedIn();
+      allow delete: if true;
     }
 
     // Duty Assignment Validation
     function isValidDutyAssignment(data) {
-      return data.keys().hasAll(['id', 'date', 'block', 'staffIds']) &&
+      return data.keys().hasAll(['id', 'date', 'block', 'role', 'staffIds', 'createdAt']) &&
              data.id is string &&
              data.date is string &&
-             data.block in ['Sir Syed', 'Business School', 'NC', 'XC'] &&
+             data.block in ['Sir Syed', 'Business School', 'Iqbal Block', 'Quaid Block'] &&
+             data.role is string &&
              data.staffIds is list && data.staffIds.size() <= 10;
     }
 
     match /duties/{dutyId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidId(dutyId) && isValidDutyAssignment(incoming());
-      allow update: if isSignedIn() && isValidDutyAssignment(incoming());
-      allow delete: if isSignedIn();
+      allow read: if true;
+      allow create: if isValidId(dutyId) && isValidDutyAssignment(incoming());
+      allow update: if isValidDutyAssignment(incoming());
+      allow delete: if true;
     }
   }
 }

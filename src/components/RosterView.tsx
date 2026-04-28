@@ -121,14 +121,22 @@ export function RosterView() {
                       {asgn.block}
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {asgn.staffIds.map(id => (
-                        <div key={id} className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5">
-                          <Users className="w-3 h-3 text-gray-400" />
-                          <span className="text-sm text-gray-700">
-                            {employees.find(e => e.id === id)?.name || 'Loading...'}
-                          </span>
-                        </div>
-                      ))}
+                      {asgn.staffIds.map(id => {
+                        const employee = employees.find(e => e.id === id);
+                        return (
+                          <div key={id} className="w-full flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <Users className="w-3 h-3 text-gray-400" />
+                              <span className="text-sm font-medium text-gray-700">
+                                {employee?.name || 'Loading...'}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                              {asgn.role}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
