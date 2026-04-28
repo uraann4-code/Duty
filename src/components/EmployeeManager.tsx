@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { rosterService, Employee, Designation } from '../services/rosterService';
-import { UserPlus, Trash2, Search, ArrowUpDown, Briefcase } from 'lucide-react';
+import { UserPlus, Trash2, Search, ArrowUpDown, Briefcase, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export function EmployeeManager() {
@@ -19,6 +19,53 @@ export function EmployeeManager() {
     const data = await rosterService.getEmployees();
     setEmployees(data);
     setLoading(false);
+  };
+
+  const designations: Designation[] = [
+    'Assistant Lab Engineer',
+    'IT Incharge',
+    'Lab Assistant',
+    'Lab Technician',
+    'IT Assistant',
+    'Jr. Lab Assistant',
+    'M. M. Operator',
+    'Lab Attendant'
+  ];
+
+  const seedData = async () => {
+    if (!confirm('This will add the 28 staff members from the provided list. Continue?')) return;
+    const initialStaff: { name: string, designation: Designation }[] = [
+      { name: "Mr. Rehan Akhtar", designation: "Assistant Lab Engineer" },
+      { name: "Mr. M. Ali Asif Khan", designation: "IT Incharge" },
+      { name: "Mr. Muhammad Asif", designation: "Assistant Lab Engineer" },
+      { name: "Mr. Babar Nazir Malik", designation: "Assistant Lab Engineer" },
+      { name: "Ms. Aqsa Rehman", designation: "Assistant Lab Engineer" },
+      { name: "Mr. Abdul Rahman Khan", designation: "Assistant Lab Engineer" },
+      { name: "Mr. Tayyab Riaz", designation: "Assistant Lab Engineer" },
+      { name: "Mr. M Intikhab Alam", designation: "Lab Assistant" },
+      { name: "Mr. Raja Ali Imran", designation: "Lab Assistant" },
+      { name: "Mr. Ishtiaq Ahmed", designation: "Lab Assistant" },
+      { name: "Mr. Ali Sarmad Khan", designation: "Lab Assistant" },
+      { name: "Mr. Adil Shah Gilani", designation: "Lab Assistant" },
+      { name: "Mr. Zohaib Farid", designation: "Lab Technician" },
+      { name: "Mr. Moheed Afzal Khan", designation: "Lab Technician" },
+      { name: "Mr. Muhammad Riaz", designation: "IT Assistant" },
+      { name: "Mr. Zahid Hussain", designation: "Lab Technician" },
+      { name: "Mr. Ihtesham Khan", designation: "Lab Assistant" },
+      { name: "Mr. Muhammad Shahzad", designation: "Jr. Lab Assistant" },
+      { name: "Mr. Abdul Salam", designation: "Lab Assistant" },
+      { name: "Mr. Mohsin Imtiaz", designation: "Lab Assistant" },
+      { name: "Mr. Muhammad Adil", designation: "Lab Assistant" },
+      { name: "Mr. M Hammad Nawaz", designation: "Lab Technician" },
+      { name: "Mr. Jahanzaib Nazir", designation: "Lab Assistant" },
+      { name: "Mr. Muhammad Waseem", designation: "Lab Assistant" },
+      { name: "Mr. Mohsin Iqbal", designation: "Jr. Lab Assistant" },
+      { name: "Mr. Junaid Adnan", designation: "Jr. Lab Assistant" },
+      { name: "Mr. Sajid Hussain", designation: "M. M. Operator" },
+      { name: "Mr. Aqib Javed", designation: "M. M. Operator" }
+    ];
+    await rosterService.seedInitialEmployees(initialStaff);
+    loadEmployees();
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -48,7 +95,14 @@ export function EmployeeManager() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
-          <p className="text-gray-500">Manage your office staff ({employees.length}/54)</p>
+          <p className="text-gray-500">Manage your office staff ({employees.length}/53)</p>
+          <button 
+            onClick={seedData}
+            className="mt-2 text-xs text-blue-600 hover:underline flex items-center gap-1"
+          >
+            <Sparkles className="w-3 h-3" />
+            Import Provided List (28 People)
+          </button>
         </div>
         
         <form onSubmit={handleAdd} className="flex flex-wrap gap-2">
@@ -64,9 +118,9 @@ export function EmployeeManager() {
             onChange={(e) => setNewDesignation(e.target.value as Designation)}
             className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium"
           >
-            <option value="Lab Assistant">Lab Assistant</option>
-            <option value="MMO">MMO</option>
-            <option value="Lab Attendant">Lab Attendant</option>
+            {designations.map(d => (
+              <option key={d} value={d}>{d}</option>
+            ))}
           </select>
           <button
             type="submit"

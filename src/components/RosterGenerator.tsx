@@ -8,29 +8,29 @@ const BLOCK_REQUIREMENTS = [
   { 
     name: 'Sir Syed', 
     roles: [
-      { designation: 'Lab Assistant' as Designation, count: 1 },
-      { designation: 'MMO' as Designation, count: 1 },
-      { designation: 'Lab Attendant' as Designation, count: 1 }
+      { designation: 'Lab Assistant' as const, count: 1, allowedDesignations: ['Lab Assistant', 'Assistant Lab Engineer', 'Jr. Lab Assistant', 'Lab Technician'] },
+      { designation: 'MMO' as const, count: 1, allowedDesignations: ['M. M. Operator', 'IT Incharge', 'IT Assistant'] },
+      { designation: 'Lab Attendant' as const, count: 1, allowedDesignations: ['Lab Attendant', 'Jr. Lab Assistant'] }
     ] 
   },
   { 
     name: 'Business School', 
     roles: [
-      { designation: 'Lab Assistant' as Designation, count: 1 },
-      { designation: 'MMO' as Designation, count: 1 },
-      { designation: 'Lab Attendant' as Designation, count: 1 }
+      { designation: 'Lab Assistant' as const, count: 1, allowedDesignations: ['Lab Assistant', 'Assistant Lab Engineer', 'Jr. Lab Assistant', 'Lab Technician'] },
+      { designation: 'MMO' as const, count: 1, allowedDesignations: ['M. M. Operator', 'IT Incharge', 'IT Assistant'] },
+      { designation: 'Lab Attendant' as const, count: 1, allowedDesignations: ['Lab Attendant', 'Jr. Lab Assistant'] }
     ] 
   },
   { 
     name: 'Iqbal Block', 
     roles: [
-      { designation: 'Any', count: 1 }
+      { designation: 'Any' as const, count: 1, allowedDesignations: ['Lab Assistant', 'Assistant Lab Engineer', 'M. M. Operator', 'Lab Attendant', 'Jr. Lab Assistant', 'Lab Technician'] }
     ] 
   },
   { 
     name: 'Quaid Block', 
     roles: [
-      { designation: 'Lab Attendant' as Designation, count: 1 }
+      { designation: 'Lab Attendant' as const, count: 1, allowedDesignations: ['Lab Attendant', 'Jr. Lab Assistant'] }
     ] 
   }
 ] as const;
@@ -39,10 +39,19 @@ export function RosterGenerator({ onComplete }: { onComplete: () => void }) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [excludeWeekends, setExcludeWeekends] = useState(true);
+  const [workingDays, setWorkingDays] = useState({
+    1: true, // Mon
+    2: true, // Tue
+    3: true, // Wed
+    4: true, // Thu
+    5: true, // Fri
+    6: false, // Sat
+    0: false, // Sun
+  });
+  const [onLeaveIds, setOnLeaveIds] = useState<string[]>([]);
   const [assignments, setAssignments] = useState<DutyAssignment[]>([]);
   const [busy, setBusy] = useState(false);
-  const [step, setStep] = useState<'config' | 'preview'>('config');
+  const [step, setStep] = useState<'config' | 'leave' | 'preview'>('config');
 
   useEffect(() => {
     rosterService.getEmployees().then(setEmployees);
@@ -50,32 +59,32 @@ export function RosterGenerator({ onComplete }: { onComplete: () => void }) {
 
   const generateRoster = () => {
     setBusy(true);
-    const days = eachDayOfInterval({
+    const dateInterval = eachDayOfInterval({
       start: parseISO(startDate),
       end: parseISO(endDate)
     });
 
-    const activeEmployees = employees.filter(e => e.isActive);
+    const activeEmployees = employees.filter(e => e.isActive && !onLeaveIds.includes(e.id));
+    
     if (activeEmployees.length < 8) {
-      alert("Not enough active employees. Need at least 8.");
+      alert("Not enough staff available (considering leaves). Need at least 8.");
       setBusy(false);
       return;
     }
 
-    // Local copy to track state during generation
     let tempEmployees = activeEmployees.map(e => ({ ...e }));
     const newAssignments: DutyAssignment[] = [];
 
-    days.forEach(day => {
-      if (excludeWeekends && (isSaturday(day) || isSunday(day))) return;
+    dateInterval.forEach(day => {
+      const dayOfWeek = day.getDay() as keyof typeof workingDays;
+      if (!workingDays[dayOfWeek]) return;
 
       const dateStr = format(day, 'yyyy-MM-dd');
       let assignedToday: string[] = [];
 
-      // Sort helpers
-      const getSortedAvailable = (designation?: Designation) => {
+      const getSortedAvailable = (allowed: string[]) => {
         return tempEmployees
-          .filter(e => !assignedToday.includes(e.id) && (!designation || e.designation === designation))
+          .filter(e => !assignedToday.includes(e.id) && allowed.includes(e.designation))
           .sort((a, b) => {
             if (a.dutyCount !== b.dutyCount) return a.dutyCount - b.dutyCount;
             if (!a.lastDutyDate) return -1;
@@ -84,11 +93,10 @@ export function RosterGenerator({ onComplete }: { onComplete: () => void }) {
           });
       };
 
-      // We need to fulfill specific roles first, then generic ones
       BLOCK_REQUIREMENTS.forEach(block => {
         block.roles.forEach(roleReq => {
           for (let i = 0; i < roleReq.count; i++) {
-            const available = getSortedAvailable(roleReq.designation === 'Any' ? undefined : roleReq.designation as Designation);
+            const available = getSortedAvailable(roleReq.allowedDesignations as unknown as string[]);
             
             if (available.length > 0) {
               const selected = available[0];
@@ -102,7 +110,6 @@ export function RosterGenerator({ onComplete }: { onComplete: () => void }) {
                 createdAt: new Date().toISOString()
               });
 
-              // Update in-memory state
               selected.dutyCount += 1;
               selected.lastDutyDate = dateStr;
               assignedToday.push(selected.id);
@@ -178,23 +185,29 @@ export function RosterGenerator({ onComplete }: { onComplete: () => void }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl mb-8">
-              <input
-                type="checkbox"
-                id="weekends"
-                checked={excludeWeekends}
-                onChange={(e) => setExcludeWeekends(e.target.checked)}
-                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-              />
-              <label htmlFor="weekends" className="text-sm font-medium text-blue-900">
-                Exclude Weekends (Saturdays & Sundays)
-              </label>
+            <div className="space-y-4 mb-8">
+              <label className="text-sm font-semibold text-gray-700">Working Days of Week</label>
+              <div className="flex flex-wrap gap-3">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
+                  <button
+                    key={day}
+                    onClick={() => setWorkingDays(prev => ({ ...prev, [i]: !prev[i as keyof typeof workingDays] }))}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      workingDays[i as keyof typeof workingDays] 
+                        ? 'bg-blue-600 text-white shadow-md' 
+                        : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-2xl border border-dashed border-gray-300 mb-8">
               <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-orange-500" />
-                Duty Distribution Check
+                Duty Distribution Plan (After 4 PM)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-600">
                 <p><strong>Sir Syed Block:</strong> 1 Asst, 1 MMO, 1 Attendant</p>
@@ -203,22 +216,86 @@ export function RosterGenerator({ onComplete }: { onComplete: () => void }) {
                 <p><strong>Quaid Block:</strong> 1 Lab Attendant</p>
               </div>
               <p className="mt-4 text-xs text-gray-500 italic">
-                *The algorithm will prioritize staff members with the lowest cumulative duty count for fairness.
+                *Fairness logic: Least duties performed + longest time since last duty.
               </p>
             </div>
 
             <button
-              onClick={generateRoster}
-              disabled={busy}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              onClick={() => setStep('leave')}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all"
             >
-              {busy ? 'Generating...' : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  Generate Smart Roster
-                </>
-              )}
+              Next: Select Staff on Leave
+              <ChevronRight className="w-5 h-5" />
             </button>
+          </motion.div>
+        ) : step === 'leave' ? (
+          <motion.div
+            key="leave"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Select Staff on Leave</h2>
+              <button 
+                onClick={() => setOnLeaveIds([])}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Clear all
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-500 mb-6 font-urdu">
+              Select staff members who are on leave for the chosen period ({startDate} to {endDate}). These members will not be included in the roster.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8 max-h-[400px] overflow-y-auto pr-2">
+              {employees.map(emp => (
+                <button
+                  key={emp.id}
+                  onClick={() => setOnLeaveIds(prev => 
+                    prev.includes(emp.id) ? prev.filter(id => id !== emp.id) : [...prev, emp.id]
+                  )}
+                  className={`flex items-center justify-between p-3 rounded-xl border transition-all text-left ${
+                    onLeaveIds.includes(emp.id)
+                      ? 'bg-red-50 border-red-200 ring-1 ring-red-100'
+                      : 'bg-white border-gray-100 hover:border-gray-300'
+                  }`}
+                >
+                  <div>
+                    <p className={`text-sm font-medium ${onLeaveIds.includes(emp.id) ? 'text-red-700' : 'text-gray-900'}`}>
+                      {emp.name}
+                    </p>
+                    <p className="text-[10px] text-gray-500 uppercase">{emp.designation}</p>
+                  </div>
+                  {onLeaveIds.includes(emp.id) && (
+                    <span className="text-[10px] font-bold bg-red-600 text-white px-2 py-1 rounded">Leave</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep('config')}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-xl transition-all"
+              >
+                Back
+              </button>
+              <button
+                onClick={generateRoster}
+                disabled={busy}
+                className="flex-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              >
+                {busy ? 'Generating...' : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Generate Weekly Roster
+                  </>
+                )}
+              </button>
+            </div>
           </motion.div>
         ) : (
           <motion.div
@@ -229,7 +306,7 @@ export function RosterGenerator({ onComplete }: { onComplete: () => void }) {
           >
             <div className="flex items-center justify-between">
               <button
-                onClick={() => setStep('config')}
+                onClick={() => setStep('leave')}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
               >
                 <ChevronLeft className="w-4 h-4" />

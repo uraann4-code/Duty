@@ -53,7 +53,15 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
-export type Designation = 'Lab Assistant' | 'MMO' | 'Lab Attendant';
+export type Designation = 
+  | 'Assistant Lab Engineer' 
+  | 'IT Incharge' 
+  | 'Lab Assistant' 
+  | 'Lab Technician' 
+  | 'IT Assistant' 
+  | 'Jr. Lab Assistant' 
+  | 'M. M. Operator' 
+  | 'Lab Attendant';
 
 export interface Employee {
   id: string;
@@ -100,6 +108,23 @@ export const rosterService = {
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, `employees/${id}`);
     }
+  },
+
+  async seedInitialEmployees(staff: { name: string, designation: Designation }[]): Promise<void> {
+    const batch = writeBatch(db);
+    staff.forEach(item => {
+      const id = crypto.randomUUID();
+      const docRef = doc(db, 'employees', id);
+      batch.set(docRef, {
+        id,
+        name: item.name,
+        designation: item.designation,
+        dutyCount: 0,
+        lastDutyDate: null,
+        isActive: true
+      });
+    });
+    await batch.commit();
   },
 
   async deleteEmployee(id: string): Promise<void> {
