@@ -1,0 +1,6 @@
+{
+  "name": "Office Duty Roster",
+  "description": "A monthly duty management application for office staff with fair distribution across 4 blocks (Sir Syed, Business School, NC, and XC).",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Employee Validation
+    function isValidEmployee(data) {
+      return data.keys().hasAll(['id', 'name', 'dutyCount']) &&
+             data.id is string && data.id.size() <= 100 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.dutyCount is number &&
+             (!data.keys().contains('lastDutyDate') || data.lastDutyDate is string);
+    }
+
+    match /employees/{employeeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(employeeId) && isValidEmployee(incoming());
+      allow update: if isSignedIn() && isValidEmployee(incoming()) && (
+        // Allow updating dutyCount and lastDutyDate for fairness logic
+        incoming().diff(existing()).affectedKeys().hasAny(['dutyCount', 'lastDutyDate', 'name', 'isActive'])
+      );
+      allow delete: if isSignedIn();
+    }
+
+    // Duty Assignment Validation
+    function isValidDutyAssignment(data) {
+      return data.keys().hasAll(['id', 'date', 'block', 'staffIds']) &&
+             data.id is string &&
+             data.date is string &&
+             data.block in ['Sir Syed', 'Business School', 'NC', 'XC'] &&
+             data.staffIds is list && data.staffIds.size() <= 10;
+    }
+
+    match /duties/{dutyId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(dutyId) && isValidDutyAssignment(incoming());
+      allow update: if isSignedIn() && isValidDutyAssignment(incoming());
+      allow delete: if isSignedIn();
+    }
+  }
+}
