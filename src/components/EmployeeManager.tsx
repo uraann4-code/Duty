@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { rosterService, Employee, Designation } from '../services/rosterService';
-import { UserPlus, Trash2, Search, ArrowUpDown, Briefcase, Sparkles } from 'lucide-react';
+import { UserPlus, Trash2, Search, ArrowUpDown, Briefcase, Sparkles, FileUp, Download } from 'lucide-react';
 import { motion } from 'motion/react';
+import * as XLSX from 'xlsx';
 
 export function EmployeeManager() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -9,6 +10,8 @@ export function EmployeeManager() {
   const [newDesignation, setNewDesignation] = useState<Designation>('Lab Assistant');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadEmployees();
@@ -32,6 +35,70 @@ export function EmployeeManager() {
     'Lab Attendant',
     'Naib Qasid'
   ];
+
+  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+        const staffToImport: { name: string, designation: Designation }[] = [];
+        
+        jsonData.forEach((row: any) => {
+          const name = row.Name || row.name || row.NAME || row['Staff Name'];
+          const designation = row.Designation || row.designation || row.DESIGNATION || row.Role;
+
+          if (name && designation) {
+            // Find closest match or default
+            const matchedDesignation = designations.find(d => 
+              d.toLowerCase() === designation.toString().toLowerCase() ||
+              designation.toString().toLowerCase().includes(d.toLowerCase())
+            ) as Designation;
+
+            staffToImport.push({
+              name: name.toString().trim(),
+              designation: matchedDesignation || 'Lab Attendant'
+            });
+          }
+        });
+
+        if (staffToImport.length > 0) {
+          if (confirm(`Found ${staffToImport.length} staff members. Import them now?`)) {
+            await rosterService.seedInitialEmployees(staffToImport);
+            await loadEmployees();
+            alert(`Successfully imported ${staffToImport.length} employees.`);
+          }
+        } else {
+          alert('No valid staff data found in the Excel file. Please ensure columns are named "Name" and "Designation".');
+        }
+      } catch (error) {
+        console.error('Excel processing error:', error);
+        alert('Error processing Excel file. Please check the format.');
+      } finally {
+        setImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.json_to_sheet([
+      { Name: 'John Doe', Designation: 'Lab Assistant' },
+      { Name: 'Jane Smith', Designation: 'Lab Attendant' }
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "Staff_Import_Template.xlsx");
+  };
 
   const seedData = async () => {
     if (!confirm('This will add the 53 staff members from the provided list. Continue?')) return;
@@ -122,14 +189,38 @@ export function EmployeeManager() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
-          <p className="text-gray-500">Manage your office staff ({employees.length}/53)</p>
-          <button 
-            onClick={seedData}
-            className="mt-2 text-xs text-blue-600 hover:underline flex items-center gap-1"
-          >
-            <Sparkles className="w-3 h-3" />
-            Import Provided List (53 People)
-          </button>
+          <p className="text-gray-500">Manage your office staff ({employees.length})</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              className="text-xs font-semibold bg-blue-50 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-100 flex items-center gap-2 transition-all"
+            >
+              <FileUp className="w-3.5 h-3.5" />
+              {importing ? 'Importing...' : 'Import Excel'}
+            </button>
+            <button 
+              onClick={downloadTemplate}
+              className="text-xs font-semibold bg-gray-50 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 flex items-center gap-2 transition-all"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Template
+            </button>
+            <button 
+              onClick={seedData}
+              className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
+            >
+              <Sparkles className="w-3 h-3" />
+              Restore Original List (53)
+            </button>
+          </div>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleExcelUpload} 
+            accept=".xlsx, .xls, .csv" 
+            className="hidden" 
+          />
         </div>
         
         <form onSubmit={handleAdd} className="flex flex-wrap gap-2">
