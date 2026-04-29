@@ -61,7 +61,8 @@ export type Designation =
   | 'IT Assistant' 
   | 'Jr. Lab Assistant' 
   | 'M. M. Operator' 
-  | 'Lab Attendant';
+  | 'Lab Attendant'
+  | 'Naib Qasid';
 
 export interface Employee {
   id: string;

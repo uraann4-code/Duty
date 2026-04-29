@@ -7,7 +7,7 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "designation": { "type": "string", "enum": ["Lab Assistant", "MMO", "Lab Attendant"] },
+        "designation": { "type": "string", "enum": ["Assistant Lab Engineer", "IT Incharge", "Lab Assistant", "Lab Technician", "IT Assistant", "Jr. Lab Assistant", "M. M. Operator", "Lab Attendant", "Naib Qasid"] },
         "dutyCount": { "type": "number", "description": "Total number of duties performed" },
         "lastDutyDate": { "type": "string", "format": "date", "description": "Date of the last assigned duty" },
         "isActive": { "type": "boolean" }

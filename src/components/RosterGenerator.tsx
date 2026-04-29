@@ -24,7 +24,7 @@ const BLOCK_REQUIREMENTS = [
   { 
     name: 'Iqbal Block', 
     roles: [
-      { designation: 'Any' as const, count: 1, allowedDesignations: ['Lab Assistant', 'Assistant Lab Engineer', 'M. M. Operator', 'Lab Attendant', 'Jr. Lab Assistant', 'Lab Technician'] }
+      { designation: 'Any' as const, count: 1, allowedDesignations: ['Lab Assistant', 'Assistant Lab Engineer', 'M. M. Operator', 'Lab Attendant', 'Jr. Lab Assistant', 'Lab Technician', 'Naib Qasid'] }
     ] 
   },
   { 

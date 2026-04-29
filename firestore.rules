@@ -28,7 +28,7 @@ service cloud.firestore {
       return data.keys().hasAll(['id', 'name', 'designation', 'dutyCount', 'isActive']) &&
              data.id is string && data.id.size() <= 128 &&
              data.name is string && data.name.size() <= 100 &&
-             data.designation in ['Lab Assistant', 'MMO', 'Lab Attendant'] &&
+             data.designation in ['Assistant Lab Engineer', 'IT Incharge', 'Lab Assistant', 'Lab Technician', 'IT Assistant', 'Jr. Lab Assistant', 'M. M. Operator', 'Lab Attendant', 'Naib Qasid'] &&
              data.dutyCount is number &&
              data.isActive is bool &&
              (!data.keys().contains('lastDutyDate') || data.lastDutyDate == null || data.lastDutyDate is string);

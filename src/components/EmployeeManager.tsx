@@ -29,11 +29,12 @@ export function EmployeeManager() {
     'IT Assistant',
     'Jr. Lab Assistant',
     'M. M. Operator',
-    'Lab Attendant'
+    'Lab Attendant',
+    'Naib Qasid'
   ];
 
   const seedData = async () => {
-    if (!confirm('This will add the 28 staff members from the provided list. Continue?')) return;
+    if (!confirm('This will add the 53 staff members from the provided list. Continue?')) return;
     const initialStaff: { name: string, designation: Designation }[] = [
       { name: "Mr. Rehan Akhtar", designation: "Assistant Lab Engineer" },
       { name: "Mr. M. Ali Asif Khan", designation: "IT Incharge" },
@@ -46,7 +47,7 @@ export function EmployeeManager() {
       { name: "Mr. Raja Ali Imran", designation: "Lab Assistant" },
       { name: "Mr. Ishtiaq Ahmed", designation: "Lab Assistant" },
       { name: "Mr. Ali Sarmad Khan", designation: "Lab Assistant" },
-      { name: "Mr. Adil Shah Gilani", designation: "Lab Assistant" },
+      { name: "Mr. Adil Shah Gillani", designation: "Lab Assistant" },
       { name: "Mr. Zohaib Farid", designation: "Lab Technician" },
       { name: "Mr. Moheed Afzal Khan", designation: "Lab Technician" },
       { name: "Mr. Muhammad Riaz", designation: "IT Assistant" },
@@ -62,10 +63,36 @@ export function EmployeeManager() {
       { name: "Mr. Mohsin Iqbal", designation: "Jr. Lab Assistant" },
       { name: "Mr. Junaid Adnan", designation: "Jr. Lab Assistant" },
       { name: "Mr. Sajid Hussain", designation: "M. M. Operator" },
-      { name: "Mr. Aqib Javed", designation: "M. M. Operator" }
+      { name: "Mr. Aqib Javed", designation: "M. M. Operator" },
+      { name: "Mr. Mirza Azhar Baig", designation: "M. M. Operator" },
+      { name: "Mr. Ghulam Shabbir Khan", designation: "M. M. Operator" },
+      { name: "Mr. M. Imran Khan", designation: "M. M. Operator" },
+      { name: "Mr. Muhammad Wajid", designation: "M. M. Operator" },
+      { name: "Mr. Hashmat Ullah Khan", designation: "M. M. Operator" },
+      { name: "Mr. M. Arshad", designation: "M. M. Operator" },
+      { name: "Mr. Danish Mehmood", designation: "M. M. Operator" },
+      { name: "Mr. Sheryar Amin", designation: "M. M. Operator" },
+      { name: "Mr. Tahir Shaheen", designation: "Lab Attendant" },
+      { name: "Mr. Muhammad Qazafi", designation: "Lab Attendant" },
+      { name: "Mr. Abdul Rasheed", designation: "Lab Attendant" },
+      { name: "Mr. Muhammad Israr", designation: "Lab Attendant" },
+      { name: "Mr. Waseem Ahmad", designation: "Lab Attendant" },
+      { name: "Mr. Muhammad Sharif", designation: "Lab Attendant" },
+      { name: "Mr. Afzal Ahmad", designation: "Lab Attendant" },
+      { name: "Mr. Adnan Safdar", designation: "Lab Attendant" },
+      { name: "Mr. Muhammad Waqas", designation: "Lab Attendant" },
+      { name: "Mr. Malik Mobeen", designation: "Naib Qasid" },
+      { name: "Mr. M. Munib Ur Rehman", designation: "Lab Attendant" },
+      { name: "Mr. Muhammad Usman", designation: "Lab Attendant" },
+      { name: "Mr. Sheraz Khan", designation: "Lab Attendant" },
+      { name: "Mr. Shayan Ahmed", designation: "Lab Attendant" },
+      { name: "Mr. Hamza Altaf", designation: "Lab Attendant" },
+      { name: "Mr. Muhammad Saqib", designation: "Lab Attendant" },
+      { name: "Mr. Nadeem Riasat", designation: "Lab Attendant" }
     ];
     await rosterService.seedInitialEmployees(initialStaff);
     loadEmployees();
+    alert('Imported all 53 staff members successfully.');
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -101,7 +128,7 @@ export function EmployeeManager() {
             className="mt-2 text-xs text-blue-600 hover:underline flex items-center gap-1"
           >
             <Sparkles className="w-3 h-3" />
-            Import Provided List (28 People)
+            Import Provided List (53 People)
           </button>
         </div>
         
